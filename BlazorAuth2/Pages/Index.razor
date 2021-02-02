@@ -1,0 +1,52 @@
+﻿@page "/"
+
+@using Models
+
+@inject HttpClient httpClient
+@inject NavigationManager navManager
+@inject IJSRuntime JsRuntime;
+
+
+<EditForm Model="Model"
+          OnValidSubmit="Login">
+    <label>Логин:</label>
+    <InputText @bind-Value="@Model.Username" />
+    <label>Пароль:</label>
+    <InputText @bind-Value="@Model.Password" />
+    <button type="submit">вход</button>
+</EditForm>
+
+@code {
+    LoginModel Model { get; set; } = new LoginModel();
+
+    async Task Login()
+    {
+        HttpClient http = new HttpClient();
+        http.BaseAddress = new Uri(navManager.BaseUri);
+        string myContent = JsonConvert.SerializeObject(Model);
+        StringContent stringContent = new StringContent(myContent, System.Text.Encoding.UTF8, "application/json");
+        var response = await http.PostAsync("/account/login", stringContent);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var a = 1;
+        }
+        else
+        {
+            var success = response.Headers.TryGetValues("Set-Cookie", out var setCookie);
+            if (success)
+            {
+                var setCookieString = setCookie.FirstOrDefault();
+                var cookieTokens = setCookieString.Split(';');
+                var firstCookie = cookieTokens.FirstOrDefault();
+                await JsRuntime.InvokeAsync<string>("addCookie", firstCookie);
+
+                // refresh page
+            }
+            else
+            {
+            }
+        }
+        http.Dispose();
+    }
+}
